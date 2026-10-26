@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>MEMORY MATCH</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#050508;--cy:#00c8ff;--gr:#00ff88;--tx:#c8e6f0;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#050508;--tx:#c8e6f0}}
+:root[data-theme="dark"]{--bg:#050508;--tx:#c8e6f0}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font-family:'Orbitron','Noto Sans Bengali',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;overflow:hidden;user-select:none;-webkit-user-select:none}
+.back{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:10px;z-index:5;color:var(--cy);text-decoration:none;font-size:12px;letter-spacing:.12em;border:1px solid rgba(0,200,255,.4);border-radius:6px;padding:6px 10px;background:rgba(5,5,8,.7)}
+h1{margin:0;font-size:22px;letter-spacing:.12em;color:var(--cy);text-shadow:0 0 12px var(--cy)}
+#hud{font-size:12px;letter-spacing:.1em;display:flex;gap:16px}#hud b{color:var(--gr)}
+#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:min(92vw,58vh)}
+.c{aspect-ratio:1;font-size:clamp(26px,9vw,44px);background:#0b0d1a;border:1px solid rgba(0,200,255,.3);border-radius:10px;color:var(--tx);cursor:pointer;font-family:inherit;padding:0;transition:background .2s,box-shadow .2s}
+.c.on{background:#0f1a30;border-color:var(--cy);box-shadow:0 0 14px rgba(0,200,255,.4)}
+.c.ok{background:#07241a;border-color:var(--gr);box-shadow:0 0 14px rgba(0,255,136,.5)}
+#win{display:none;position:fixed;inset:0;background:rgba(2,3,10,.88);flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px}
+#win h2{margin:0;color:var(--gr);font-size:28px;text-shadow:0 0 14px var(--gr)}
+button.r{font-family:inherit;font-weight:700;font-size:14px;letter-spacing:.15em;color:var(--cy);background:transparent;border:2px solid var(--cy);border-radius:6px;padding:12px 30px;cursor:pointer}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">◀ ARCADE</a>
+<h1>MEMORY MATCH</h1>
+<div id="hud"><span>MOVES <b id="mv">0</b></span><span>TIME <b id="tm">0</b>s</span><span>BEST <b id="bs">-</b></span></div>
+<div id="grid"></div>
+<div id="win"><h2>YOU WIN!</h2><div id="wmsg"></div><button class="r" id="again">আবার খেলো</button></div>
+<script>
+'use strict';
+const E=['🚀','🪐','👽','🛸','☄️','🌟','🌙','🔭'];
+const grid=document.getElementById('grid'),win=document.getElementById('win');
+let first=null,lock=false,moves=0,found=0,t0=0,tick=null,best=0;
+try{best=+localStorage.getItem('mem_best')||0}catch(e){}
+function upd(){
+  document.getElementById('mv').textContent=moves;
+  document.getElementById('tm').textContent=t0?Math.floor((Date.now()-t0)/1000):0;
+  document.getElementById('bs').textContent=best||'-';
+}
+function init(){
+  clearInterval(tick);
+  const a=[...E,...E];
+  for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}
+  grid.innerHTML='';
+  a.forEach(e=>{const b=document.createElement('button');b.className='c';b.dataset.e=e;b.onclick=()=>flip(b);grid.appendChild(b)});
+  first=null;lock=false;moves=0;found=0;t0=0;win.style.display='none';upd();
+}
+function flip(b){
+  if(lock||b.classList.contains('on')||b.classList.contains('ok'))return;
+  if(!t0){t0=Date.now();tick=setInterval(upd,500)}
+  b.classList.add('on');b.textContent=b.dataset.e;
+  if(!first){first=b;return}
+  moves++;
+  if(first.dataset.e===b.dataset.e){
+    first.className='c ok';b.className='c ok';first=null;found++;upd();
+    if(found===E.length)done();
+  }else{
+    lock=true;const a=first;first=null;upd();
+    setTimeout(()=>{a.className='c';b.className='c';a.textContent='';b.textContent='';lock=false},700);
+  }
+}
+function done(){
+  clearInterval(tick);const sec=Math.floor((Date.now()-t0)/1000);
+  if(!best||moves<best){best=moves;try{localStorage.setItem('mem_best',String(best))}catch(e){}}
+  upd();
+  document.getElementById('wmsg').innerHTML=moves+' চাল · '+sec+' সেকেন্ড<br>সেরা: '+best+' চাল';
+  setTimeout(()=>{win.style.display='flex'},500);
+}
+document.getElementById('again').onclick=init;
+init();
+</script>
+</body>
+</html>

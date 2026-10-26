@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>NEON SNAKE</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#050508;--cy:#00c8ff;--gr:#00ff88;--tx:#c8e6f0;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#050508;--tx:#c8e6f0}}
+:root[data-theme="dark"]{--bg:#050508;--tx:#c8e6f0}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font-family:'Orbitron','Noto Sans Bengali',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.back{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:10px;z-index:5;color:var(--cy);text-decoration:none;font-size:12px;letter-spacing:.12em;border:1px solid rgba(0,200,255,.4);border-radius:6px;padding:6px 10px;background:rgba(5,5,8,.7)}
+h1{margin:0;font-size:22px;letter-spacing:.12em;color:var(--gr);text-shadow:0 0 12px var(--gr)}
+#hud{font-size:13px;letter-spacing:.1em}#hud b{color:var(--cy)}
+canvas{width:min(92vw,60vh);aspect-ratio:1;background:#02030a;border:1px solid rgba(0,200,255,.35);border-radius:10px;box-shadow:0 0 28px rgba(0,200,255,.15)}
+p{margin:0;font-size:12px;opacity:.7}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">◀ ARCADE</a>
+<h1>NEON SNAKE</h1>
+<div id="hud">SCORE <b id="sc">0</b> &nbsp; HI <b id="hi">0</b></div>
+<canvas id="c"></canvas>
+<p>সোয়াইপ করে বা তীর চিহ্ন / WASD দিয়ে সাপ ঘোরাও</p>
+<script>
+'use strict';
+const N=20,C=18,cv=document.getElementById('c'),g=cv.getContext('2d');cv.width=cv.height=N*C;
+let s=null,d={x:1,y:0},nd=d,f={x:5,y:5},sc=0,hi=0,st='menu',acc=0,sp=.14,last=0,overAt=0;
+try{hi=+localStorage.getItem('snk_hi')||0}catch(e){}
+function place(){do{f={x:Math.random()*N|0,y:Math.random()*N|0}}while(s.some(p=>p.x===f.x&&p.y===f.y))}
+function start(){s=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];d=nd={x:1,y:0};sc=0;sp=.14;acc=0;place();st='play'}
+function over(){st='over';overAt=performance.now();if(sc>hi){hi=sc;try{localStorage.setItem('snk_hi',String(hi))}catch(e){}}}
+function turn(x,y){if(st!=='play'||(x===-d.x&&y===-d.y))return;nd={x,y}}
+function step(){
+  d=nd;const h={x:s[0].x+d.x,y:s[0].y+d.y};
+  if(h.x<0||h.y<0||h.x>=N||h.y>=N||s.some(p=>p.x===h.x&&p.y===h.y)){over();return}
+  s.unshift(h);
+  if(h.x===f.x&&h.y===f.y){sc+=10;sp=Math.max(.06,sp-.004);place()}else s.pop();
+}
+addEventListener('keydown',e=>{
+  const k=e.code;
+  if(k==='ArrowUp'||k==='KeyW')turn(0,-1);else if(k==='ArrowDown'||k==='KeyS')turn(0,1);
+  else if(k==='ArrowLeft'||k==='KeyA')turn(-1,0);else if(k==='ArrowRight'||k==='KeyD')turn(1,0);
+  else if((k==='Space'||k==='Enter')&&st!=='play'&&performance.now()-overAt>500)start();
+  if(k.startsWith('Arrow')||k==='Space')e.preventDefault();
+});
+let px=null,py=null;
+addEventListener('pointerdown',e=>{px=e.clientX;py=e.clientY;if(st!=='play'&&performance.now()-overAt>600&&!e.target.closest('.back'))start()});
+addEventListener('pointermove',e=>{
+  if(px===null||st!=='play')return;
+  const dx=e.clientX-px,dy=e.clientY-py;
+  if(Math.abs(dx)>22||Math.abs(dy)>22){
+    if(Math.abs(dx)>Math.abs(dy))turn(dx>0?1:-1,0);else turn(0,dy>0?1:-1);
+    px=e.clientX;py=e.clientY;
+  }
+});
+addEventListener('pointerup',()=>{px=null});
+function draw(){
+  g.fillStyle='#02030a';g.fillRect(0,0,cv.width,cv.height);
+  g.strokeStyle='rgba(0,200,255,.06)';
+  for(let i=0;i<=N;i++){g.beginPath();g.moveTo(i*C,0);g.lineTo(i*C,N*C);g.moveTo(0,i*C);g.lineTo(N*C,i*C);g.stroke()}
+  if(s){
+    g.shadowBlur=12;g.shadowColor='#ff0055';g.fillStyle='#ff0055';
+    g.beginPath();g.arc(f.x*C+C/2,f.y*C+C/2,C/2-3,0,6.283);g.fill();
+    g.shadowColor='#00ff88';
+    s.forEach((p,i)=>{g.fillStyle=i?'#00cc6e':'#00ff88';g.fillRect(p.x*C+1,p.y*C+1,C-2,C-2)});
+    g.shadowBlur=0;
+  }
+  if(st!=='play'){
+    g.fillStyle='rgba(2,3,10,.72)';g.fillRect(0,0,cv.width,cv.height);
+    g.textAlign='center';g.fillStyle='#00c8ff';g.font='700 22px Orbitron, sans-serif';
+    g.fillText(st==='over'?'GAME OVER':'NEON SNAKE',cv.width/2,cv.height/2-8);
+    g.font='700 12px Orbitron, sans-serif';g.fillStyle='#c8e6f0';
+    g.fillText('TAP / ENTER TO '+(st==='over'?'RETRY':'START'),cv.width/2,cv.height/2+18);
+  }
+  document.getElementById('sc').textContent=sc;document.getElementById('hi').textContent=Math.max(hi,sc);
+}
+function loop(ts){
+  const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  if(st==='play'){acc+=dt;while(acc>=sp&&st==='play'){acc-=sp;step()}}
+  draw();requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
